@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Бюджет Курочкиных</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    :root {
+      --bg: var(--tg-theme-bg-color, #f4f5f7);
+      --card: var(--tg-theme-secondary-bg-color, #ffffff);
+      --text: var(--tg-theme-text-color, #1c1c1e);
+      --hint: var(--tg-theme-hint-color, #8e8e93);
+      --accent: var(--tg-theme-button-color, #2481cc);
+      --accent-text: var(--tg-theme-button-text-color, #ffffff);
+      --green: #34c759;
+      --orange: #ff9500;
+      --red: #ff3b30;
+    }
+    * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    body { margin: 0; padding: 12px 12px 84px; background: var(--bg); color: var(--text); }
+    .card { background: var(--card); border-radius: 16px; padding: 16px; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+    h2 { margin: 0 0 12px; font-size: 18px; }
+    .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .badge { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; background: rgba(36,129,204,0.12); color: var(--accent); }
+    
+    /* Сводка Женя / Полина */
+    .split-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+    .split-box { background: var(--bg); padding: 12px; border-radius: 12px; }
+    .split-label { font-size: 12px; color: var(--hint); }
+    .split-val { font-size: 18px; font-weight: 700; margin-top: 4px; }
+
+    /* Сетка категорий */
+    .cat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 12px 0; }
+    .cat-btn { background: var(--bg); border: 2px solid transparent; border-radius: 12px; padding: 10px 4px; text-align: center; cursor: pointer; transition: 0.15s; }
+    .cat-btn.active { border-color: var(--accent); background: rgba(36,129,204,0.1); }
+    .cat-icon { font-size: 22px; display: block; margin-bottom: 4px; }
+    .cat-name { font-size: 11px; font-weight: 500; line-height: 1.2; }
+
+    /* Ввод суммы и переключатели */
+    .amount-input { width: 100%; font-size: 32px; font-weight: 700; text-align: center; border: none; background: var(--bg); color: var(--text); border-radius: 14px; padding: 14px; outline: none; }
+    .toggle-row { display: flex; gap: 8px; margin-bottom: 12px; }
+    .toggle-btn { flex: 1; padding: 10px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.08); background: var(--bg); color: var(--text); font-weight: 600; cursor: pointer; }
+    .toggle-btn.active { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+    input[type="text"], input[type="number"], select { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.1); background: var(--bg); color: var(--text); font-size: 15px; margin-bottom: 10px; }
+    .primary-btn { width: 100%; padding: 14px; border-radius: 12px; border: none; background: var(--accent); color: var(--accent-text); font-size: 16px; font-weight: 600; cursor: pointer; }
+    .primary-btn:disabled { opacity: 0.5; }
+
+    /* Прогресс-бары прогнозов */
+    .prog-item { margin-bottom: 14px; }
+    .prog-head { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 5px; }
+    .prog-bar { height: 8px; background: var(--bg); border-radius: 6px; overflow: hidden; }
+    .prog-fill { height: 100%; background: var(--green); border-radius: 6px; transition: width 0.3s; }
+    .prog-fill.warn { background: var(--orange); }
+    .prog-fill.over { background: var(--red); }
+
+    /* Обязательные платежи */
+    .ob-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid rgba(0,0,0,0.06); }
+    .ob-item:last-child { border-bottom: none; }
+    .ob-btn { padding: 8px 12px; border-radius: 8px; border: none; background: var(--green); color: #fff; font-weight: 600; font-size: 13px; cursor: pointer; }
+    .ob-done { font-size: 12px; color: var(--green); font-weight: 600; }
+
+    /* Нижняя навигация */
+    .nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--card); display: flex; border-top: 1px solid rgba(0,0,0,0.08); padding: 8px 0 18px; z-index: 100; }
+    .nav-item { flex: 1; text-align: center; font-size: 11px; color: var(--hint); cursor: pointer; }
+    .nav-item.active { color: var(--accent); font-weight: 600; }
+    .nav-icon { font-size: 20px; display: block; margin-bottom: 2px; }
+    .tab { display: none; }
+    .tab.active { display: block; }
+  </style>
+</head>
+<body>
+
+  <!-- ВКЛАДКА 1: БЫСТРЫЙ ВВОД ТРАТЫ -->
+  <div id="tab-add" class="tab active">
+    <div class="card">
+      <div class="header-row">
+        <h2>Новая трата</h2>
+        <span class="badge" id="current-month-badge">нояб. 2026</span>
+      </div>
+
+      <div class="toggle-row">
+        <button class="toggle-btn active" id="payer-zhenya" onclick="selectPayer('Женя')">👨 Женя</button>
+        <button class="toggle-btn" id="payer-polina" onclick="selectPayer('Полина')">👩 Полина</button>
+      </div>
+
+      <input type="number" id="amount" class="amount-input" placeholder="0 ₽" inputmode="decimal">
+
+      <div class="cat-grid" id="category-grid"></div>
+
+      <input type="text" id="comment" placeholder="Комментарий (например: Пятерочка, бензин)">
+      
+      <select id="account-select">
+        <option value="Карта Жени">Карта Жени</option>
+        <option value="Карта Полины">Карта Полины</option>
+        <option value="Общий счет">Общий счет</option>
+        <option value="Накопительный счет">Накопительный счет</option>
+      </select>
+
+      <button class="primary-btn" id="submit-btn" onclick="submitExpense()">Добавить расход</button>
+    </div>
+
+    <div class="card">
+      <h2>Последние операции</h2>
+      <div id="recent-list" style="font-size: 14px; color: var(--hint);">Загрузка данных из таблицы...</div>
+    </div>
+  </div>
+
+  <!-- ВКЛАДКА 2: СВОДКА И ПРОГНОЗЫ (ПЛАН-ФАКТ) -->
+  <div id="tab-plan" class="tab">
+    <div class="card">
+      <h2>Расходы за месяц</h2>
+      <div style="font-size: 28px; font-weight: 800;" id="total-spent">0 ₽</div>
+      <div class="split-grid">
+        <div class="split-box">
+          <div class="split-label">Траты Жени</div>
+          <div class="split-val" id="zhenya-spent">0 ₽</div>
+        </div>
+        <div class="split-box">
+          <div class="split-label">Траты Полины</div>
+          <div class="split-val" id="polina-spent">0 ₽</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>План / Прогноз по категориям</h2>
+      <div id="plan-bars"></div>
+    </div>
+
+    <div class="card">
+      <h2>Задать свой прогноз на месяц</h2>
+      <select id="plan-category"></select>
+      <input type="number" id="plan-amount" placeholder="Лимит в рублях (например: 15000)">
+      <button class="primary-btn" onclick="saveCategoryPlan()">Сохранить прогноз</button>
+    </div>
+  </div>
+
+  <!-- ВКЛАДКА 3: ОБЯЗАТЕЛЬНЫЕ ТРАТЫ -->
+  <div id="tab-obligations" class="tab">
+    <div class="card">
+      <h2>Обязательные и будущие траты</h2>
+      <p style="font-size: 13px; color: var(--hint); margin-top: -6px;">Синхронизировано с листом «06. Обязательства»</p>
+      <div id="obligations-list">Загрузка...</div>
+    </div>
+  </div>
+
+  <!-- НАВИГАЦИЯ -->
+  <div class="nav">
+    <div class="nav-item active" onclick="switchTab('add', this)"><span class="nav-icon">➕</span>Ввод</div>
+    <div class="nav-item" onclick="switchTab('plan', this)"><span class="nav-icon">📊</span>Прогноз и Семья</div>
+    <div class="nav-item" onclick="switchTab('obligations', this)"><span class="nav-icon">📅</span>Обязательные</div>
+  </div>
+
+  <script>
+    // ВСТАВЬТЕ СЮДА URL ВАШЕГО ВЕБ-ПРИЛОЖЕНИЯ ИЗ GOOGLE APPS SCRIPT
+    const API_URL = 'https://script.google.com/macros/s/AKfycbxSFMkVblkSD4wESz1UPxoBEddfAZ7xVLF6SHgIiDXY2vgyfqMBxrYoL_tExai-sjuk/exec';
+
+    // Соответствие ваших 7 категорий названиям в таблице «Бюджет Курочкиных»
+    const CATEGORIES = [
+      { id: 'Продукты', label: 'Продукты', icon: '🛒' },
+      { id: 'Авто', label: 'Машина', icon: '🚗' },
+      { id: 'Аренда квартиры', label: 'Аренда', icon: '🏠' },
+      { id: 'Кафе и рестораны', label: 'Еда вне дома', icon: '🍔' },
+      { id: 'Здоровье и аптека', label: 'Здоровье', icon: '💊' },
+      { id: 'Подарки', label: 'Семья', icon: '👨‍👩‍👦' },
+      { id: 'Прочее', label: 'Другое', icon: '📦' }
+    ];
+
+    let selectedPayer = 'Женя';
+    let selectedCategory = 'Продукты';
+    let appData = null;
+
+    const tg = window.Telegram.WebApp;
+    tg.expand();
+
+    // Инициализация интерфейса
+    function init() {
+      const grid = document.getElementById('category-grid');
+      const planSelect = document.getElementById('plan-category');
+
+      CATEGORIES.forEach(cat => {
+        // Кнопки категорий
+        const btn = document.createElement('div');
+        btn.className = 'cat-btn' + (cat.id === selectedCategory ? ' active' : '');
+        btn.innerHTML = `<span class="cat-icon">${cat.icon}</span><span class="cat-name">${cat.label}</span>`;
+        btn.onclick = () => {
+          document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          selectedCategory = cat.id;
+        };
+        grid.appendChild(btn);
+
+        // Список для прогнозов
+        const opt = document.createElement('option');
+        opt.value = cat.id;
+        opt.textContent = `${cat.icon} ${cat.label} (${cat.id})`;
+        planSelect.appendChild(opt);
+      });
+
+      // Автоопределение пользователя по имени в Telegram
+      const firstName = tg.initDataUnsafe?.user?.first_name || '';
+      if (firstName.toLowerCase().includes('полин')) {
+        selectPayer('Полина');
+      } else {
+        selectPayer('Женя');
+      }
+
+      loadData();
+    }
+
+    function selectPayer(name) {
+      selectedPayer = name;
+      document.getElementById('payer-zhenya').classList.toggle('active', name === 'Женя');
+      document.getElementById('payer-polina').classList.toggle('active', name === 'Полина');
+      document.getElementById('account-select').value = name === 'Полина' ? 'Карта Полины' : 'Карта Жени';
+    }
+
+    function switchTab(tabName, el) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      document.getElementById('tab-' + tabName).classList.add('active');
+      el.classList.add('active');
+    }
+
+    async function loadData() {
+      if (API_URL.includes('ВСТАВЬТЕ')) return;
+      try {
+        const res = await fetch(`${API_URL}?action=getDashboard`);
+        appData = await res.json();
+        renderDashboard();
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    function renderDashboard() {
+      if (!appData) return;
+      document.getElementById('current-month-badge').textContent = appData.month;
+      document.getElementById('total-spent').textContent = formatRub(appData.summary.totalSpent);
+      document.getElementById('zhenya-spent').textContent = formatRub(appData.summary.zhenyaSpent);
+      document.getElementById('polina-spent').textContent = formatRub(appData.summary.polinaSpent);
+
+      // Прогресс-бары план/факт
+      const barsContainer = document.getElementById('plan-bars');
+      barsContainer.innerHTML = '';
+      CATEGORIES.forEach(cat => {
+        const spent = appData.spentByCategory[cat.id] || 0;
+        const plan = appData.planByCategory[cat.id] || 0;
+        const pct = plan > 0 ? Math.min(Math.round((spent / plan) * 100), 100) : (spent > 0 ? 100 : 0);
+        const cls = plan > 0 && spent > plan ? 'over' : (pct > 80 ? 'warn' : '');
+
+        barsContainer.innerHTML += `
+          <div class="prog-item">
+            <div class="prog-head">
+              <span>${cat.icon} ${cat.label}</span>
+              <span><b>${formatRub(spent)}</b> / ${plan > 0 ? formatRub(plan) : 'без лимита'}</span>
+            </div>
+            <div class="prog-bar"><div class="prog-fill ${cls}" style="width: ${pct}%"></div></div>
+          </div>
+        `;
+      });
+
+      // Обязательные платежи
+      const obContainer = document.getElementById('obligations-list');
+      obContainer.innerHTML = '';
+      appData.obligations.forEach(ob => {
+        const isPaid = ob.status.includes('Оплачено');
+        obContainer.innerHTML += `
+          <div class="ob-item">
+            <div>
+              <div style="font-weight: 600;">${ob.title}</div>
+              <div style="font-size: 12px; color: var(--hint);">${ob.category} • Дата: ${ob.nextDate || ob.payDay}</div>
+              <div style="font-weight: 700; margin-top: 2px;">${formatRub(ob.amount)}</div>
+            </div>
+            ${isPaid 
+              ? `<span class="ob-done">✓ ${ob.status}</span>` 
+              : `<button class="ob-btn" onclick="payObligation(${ob.rowIndex}, '${ob.title}')">Оплатить</button>`}
+          </div>
+        `;
+      });
+
+      // Последние операции
+      const recentContainer = document.getElementById('recent-list');
+      recentContainer.innerHTML = appData.recentTransactions.map(t => `
+        <div style="display:flex; justify-content:space-between; padding: 8px 0; border-bottom: 1px solid rgba(0,0,0,0.05);">
+          <div>
+            <b>${t.category}</b> <span style="font-size:12px;">(${t.payer})</span>
+            <div style="font-size:12px; color:var(--hint);">${t.date} ${t.comment ? '• ' + t.comment : ''}</div>
+          </div>
+          <div style="font-weight:700;">-${formatRub(t.amount)}</div>
+        </div>
+      `).join('');
+    }
+
+    async function submitExpense() {
+      const amount = document.getElementById('amount').value;
+      if (!amount || Number(amount) <= 0) {
+        tg.showAlert('Введите сумму расхода');
+        return;
+      }
+      const btn = document.getElementById('submit-btn');
+      btn.disabled = true;
+      btn.textContent = 'Сохранение...';
+
+      await fetch(API_URL, {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'addTransaction',
+          type: 'Расход',
+          category: selectedCategory,
+          amount: Number(amount),
+          payer: selectedPayer,
+          accountFrom: document.getElementById('account-select').value,
+          comment: document.getElementById('comment').value
+        })
+      });
+
+      document.getElementById('amount').value = '';
+      document.getElementById('comment').value = '';
+      btn.disabled = false;
+      btn.textContent = 'Добавить расход';
+      tg.HapticFeedback.notificationOccurred('success');
+      loadData();
+    }
+
+    async function saveCategoryPlan() {
+      const category = document.getElementById('plan-category').value;
+      const plan = document.getElementById('plan-amount').value;
+      if (!plan) return;
+
+      await fetch(API_URL, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'savePlan', category, plan: Number(plan) })
+      });
+      document.getElementById('plan-amount').value = '';
+      tg.HapticFeedback.notificationOccurred('success');
+      loadData();
+    }
+
+    async function payObligation(rowIndex, title) {
+      tg.showConfirm(`Отметить «${title}» как оплаченное от имени ${selectedPayer}?`, async (ok) => {
+        if (!ok) return;
+        await fetch(API_URL, {
+          method: 'POST',
+          body: JSON.stringify({
+            action: 'payObligation',
+            rowIndex,
+            payer: selectedPayer,
+            accountFrom: document.getElementById('account-select').value
+          })
+        });
+        tg.HapticFeedback.notificationOccurred('success');
+        loadData();
+      });
+    }
+
+    function formatRub(num) {
+      return Number(num).toLocaleString('ru-RU') + ' ₽';
+    }
+
+    init();
+  </script>
+</body>
+</html>
