@@ -153,8 +153,8 @@
   </div>
 
   <script>
-    // УБЕДИТЕСЬ, ЧТО ЗДЕСЬ ВАША ССЫЛКА, ЗАКАНЧИВАЮЩАЯСЯ НА /exec
-    const API_URL = 'https://script.google.com/macros/library/d/1ncX9TrLyn76xnB-zdWkyggcJ3w-Uog75ks56CoV9D73MjTrbHSLaQWwT/1';
+    // ВСТАВЬТЕ СЮДА ССЫЛКУ ВЕБ-ПРИЛОЖЕНИЯ, ЗАКАНЧИВАЮЩУЮСЯ НА /exec
+    const API_URL = 'https://script.google.com/macros/s/AKfycbxSFMkVblkSD4wESz1UPxoBEddfAZ7xVLF6SHgIiDXY2vgyfqMBxrYoL_tExai-sjuk/exec';
 
     const CATEGORIES = [
       { id: 'Продукты', label: 'Продукты', icon: '🛒' },
@@ -233,7 +233,7 @@
         appData = await res.json();
         renderDashboard();
       } catch (e) {
-        recentContainer.innerHTML = `<span style="color:var(--red)">Не удалось загрузить таблицу (${e.message}). Проверьте, что в Apps Script выбран доступ «Все» (Anyone).</span>`;
+        recentContainer.innerHTML = `<span style="color:var(--red)">Не удалось загрузить таблицу (${e.message}). Проверьте ссылку /exec и доступ «Все» в Apps Script.</span>`;
         document.getElementById('obligations-list').innerHTML = 'Ошибка загрузки данных';
       }
     }
