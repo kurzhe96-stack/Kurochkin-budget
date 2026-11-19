@@ -232,7 +232,6 @@
   </div>
 
   <script>
-    // ВСТАВЬТЕ СЮДА ВАШ АКТУАЛЬНЫЙ URL ВЕБ-ПРИЛОЖЕНИЯ С /exec
     const API_URL = 'https://script.google.com/macros/s/AKfycbydhCrAzYNcHHRFMOh9tjOfs8lRC1DaNMsylCm15lwoJOQeX-IrW8CzT7tOTUEME5I5/exec';
 
     const CATEGORIES = [
@@ -251,6 +250,10 @@
 
     const tg = window.Telegram.WebApp;
     tg.expand();
+
+    function parseNum(val) {
+      return Number(String(val || '').replace(',', '.')) || 0;
+    }
 
     function init() {
       const grid = document.getElementById('category-grid');
@@ -291,8 +294,7 @@
 
     function setQuickAmount(val) {
       const input = document.getElementById('amount');
-      const current = Number(input.value) || 0;
-      input.value = current + val;
+      input.value = parseNum(input.value) + val;
     }
 
     function selectPayer(name) {
@@ -311,7 +313,7 @@
 
     async function loadData() {
       const recentContainer = document.getElementById('recent-list');
-      if (API_URL.includes('ВСТАВЬТЕ') || !API_URL.startsWith('https://')) {
+      if (!API_URL.startsWith('https://')) {
         recentContainer.innerHTML = '<span style="color:var(--red)">Укажите ссылку веб-приложения (/exec) в API_URL</span>';
         return;
       }
@@ -338,15 +340,11 @@
 
       document.getElementById('zhenya-balance').textContent = formatRub(appData.balances?.zhenya || 0);
       document.getElementById('polina-balance').textContent = formatRub(appData.balances?.polina || 0);
+      document.getElementById('shared-balance').textContent = formatRub(appData.balances?.shared || 0);
       document.getElementById('total-balance').textContent = formatRub(appData.balances?.total || 0);
       document.getElementById('upcoming-obligations').textContent = formatRub(appData.summary.upcomingObligations || 0);
       document.getElementById('safe-daily-limit').textContent = formatRub(appData.summary.safeDailyLimit || 0);
       document.getElementById('days-left-label').textContent = `Осталось дней в месяце: ${appData.summary.daysLeft || 0}`;
-
-      document.getElementById('zhenya-balance').textContent = formatRub(appData.balances?.zhenya || 0);
-      document.getElementById('polina-balance').textContent = formatRub(appData.balances?.polina || 0);
-      document.getElementById('shared-balance').textContent = formatRub(appData.balances?.shared || 0);
-      document.getElementById('total-balance').textContent = formatRub(appData.balances?.total || 0);
 
       const accBox = document.getElementById('accounts-breakdown');
       if (accBox && Array.isArray(appData.accounts) && appData.accounts.length > 0) {
@@ -470,8 +468,8 @@
     }
 
     async function submitExpense() {
-      const amount = document.getElementById('amount').value;
-      if (!amount || Number(amount) <= 0) {
+      const amount = parseNum(document.getElementById('amount').value);
+      if (amount <= 0) {
         tg.showAlert('Введите сумму расхода');
         return;
       }
@@ -483,7 +481,7 @@
         action: 'addTransaction',
         type: 'Расход',
         category: selectedCategory,
-        amount: Number(amount),
+        amount,
         payer: selectedPayer,
         accountFrom: document.getElementById('account-select').value,
         comment: document.getElementById('comment').value
@@ -499,12 +497,12 @@
 
     async function saveCategoryPlan() {
       const category = document.getElementById('plan-category').value;
-      const plan = document.getElementById('plan-amount').value;
-      if (!plan || Number(plan) <= 0) {
+      const plan = parseNum(document.getElementById('plan-amount').value);
+      if (plan <= 0) {
         tg.showAlert('Введите лимит в рублях');
         return;
       }
-      await sendPost({ action: 'savePlan', category, plan: Number(plan) });
+      await sendPost({ action: 'savePlan', category, plan });
       document.getElementById('plan-amount').value = '';
       tg.HapticFeedback.notificationOccurred('success');
       loadData();
@@ -513,10 +511,10 @@
     async function addObligation() {
       const title = document.getElementById('ob-title').value.trim();
       const date = document.getElementById('ob-date').value;
-      const amount = document.getElementById('ob-amount').value;
+      const amount = parseNum(document.getElementById('ob-amount').value);
       const category = document.getElementById('ob-category').value;
 
-      if (!title || !amount || Number(amount) <= 0) {
+      if (!title || amount <= 0) {
         tg.showAlert('Укажите название и сумму обязательной траты');
         return;
       }
@@ -525,7 +523,7 @@
         action: 'addObligation',
         title,
         date,
-        amount: Number(amount),
+        amount,
         category
       });
 
