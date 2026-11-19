@@ -153,10 +153,9 @@
   </div>
 
   <script>
-    // ВСТАВЬТЕ СЮДА URL ВАШЕГО ВЕБ-ПРИЛОЖЕНИЯ ИЗ GOOGLE APPS SCRIPT
-    const API_URL = 'https://script.google.com/macros/s/AKfycbxSFMkVblkSD4wESz1UPxoBEddfAZ7xVLF6SHgIiDXY2vgyfqMBxrYoL_tExai-sjuk/exec';
+    // УБЕДИТЕСЬ, ЧТО ЗДЕСЬ ВАША ССЫЛКА, ЗАКАНЧИВАЮЩАЯСЯ НА /exec
+    const API_URL = 'https://script.google.com/macros/library/d/1ncX9TrLyn76xnB-zdWkyggcJ3w-Uog75ks56CoV9D73MjTrbHSLaQWwT/1';
 
-    // Соответствие ваших 7 категорий названиям в таблице «Бюджет Курочкиных»
     const CATEGORIES = [
       { id: 'Продукты', label: 'Продукты', icon: '🛒' },
       { id: 'Авто', label: 'Машина', icon: '🚗' },
@@ -174,13 +173,11 @@
     const tg = window.Telegram.WebApp;
     tg.expand();
 
-    // Инициализация интерфейса
     function init() {
       const grid = document.getElementById('category-grid');
       const planSelect = document.getElementById('plan-category');
 
       CATEGORIES.forEach(cat => {
-        // Кнопки категорий
         const btn = document.createElement('div');
         btn.className = 'cat-btn' + (cat.id === selectedCategory ? ' active' : '');
         btn.innerHTML = `<span class="cat-icon">${cat.icon}</span><span class="cat-name">${cat.label}</span>`;
@@ -191,14 +188,12 @@
         };
         grid.appendChild(btn);
 
-        // Список для прогнозов
         const opt = document.createElement('option');
         opt.value = cat.id;
         opt.textContent = `${cat.icon} ${cat.label} (${cat.id})`;
         planSelect.appendChild(opt);
       });
 
-      // Автоопределение пользователя по имени в Telegram
       const firstName = tg.initDataUnsafe?.user?.first_name || '';
       if (firstName.toLowerCase().includes('полин')) {
         selectPayer('Полина');
@@ -224,13 +219,22 @@
     }
 
     async function loadData() {
-      if (API_URL.includes('ВСТАВЬТЕ')) return;
+      const recentContainer = document.getElementById('recent-list');
+      if (API_URL.includes('ВСТАВЬТЕ') || !API_URL.startsWith('https://')) {
+        recentContainer.innerHTML = '<span style="color:var(--red)">Ошибка: не вставлен URL скрипта в index.html</span>';
+        return;
+      }
       try {
-        const res = await fetch(`${API_URL}?action=getDashboard`);
+        const res = await fetch(`${API_URL}?action=getDashboard&t=${Date.now()}`, {
+          method: 'GET',
+          redirect: 'follow'
+        });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
         appData = await res.json();
         renderDashboard();
       } catch (e) {
-        console.error(e);
+        recentContainer.innerHTML = `<span style="color:var(--red)">Не удалось загрузить таблицу (${e.message}). Проверьте, что в Apps Script выбран доступ «Все» (Anyone).</span>`;
+        document.getElementById('obligations-list').innerHTML = 'Ошибка загрузки данных';
       }
     }
 
@@ -241,7 +245,6 @@
       document.getElementById('zhenya-spent').textContent = formatRub(appData.summary.zhenyaSpent);
       document.getElementById('polina-spent').textContent = formatRub(appData.summary.polinaSpent);
 
-      // Прогресс-бары план/факт
       const barsContainer = document.getElementById('plan-bars');
       barsContainer.innerHTML = '';
       CATEGORIES.forEach(cat => {
@@ -261,7 +264,6 @@
         `;
       });
 
-      // Обязательные платежи
       const obContainer = document.getElementById('obligations-list');
       obContainer.innerHTML = '';
       appData.obligations.forEach(ob => {
@@ -280,8 +282,11 @@
         `;
       });
 
-      // Последние операции
       const recentContainer = document.getElementById('recent-list');
+      if (!appData.recentTransactions || appData.recentTransactions.length === 0) {
+        recentContainer.innerHTML = 'В этом месяце операций пока нет';
+        return;
+      }
       recentContainer.innerHTML = appData.recentTransactions.map(t => `
         <div style="display:flex; justify-content:space-between; padding: 8px 0; border-bottom: 1px solid rgba(0,0,0,0.05);">
           <div>
@@ -291,6 +296,16 @@
           <div style="font-weight:700;">-${formatRub(t.amount)}</div>
         </div>
       `).join('');
+    }
+
+    async function sendPost(payload) {
+      await fetch(API_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload)
+      });
+      await new Promise(r => setTimeout(r, 1200));
     }
 
     async function submitExpense() {
@@ -303,17 +318,14 @@
       btn.disabled = true;
       btn.textContent = 'Сохранение...';
 
-      await fetch(API_URL, {
-        method: 'POST',
-        body: JSON.stringify({
-          action: 'addTransaction',
-          type: 'Расход',
-          category: selectedCategory,
-          amount: Number(amount),
-          payer: selectedPayer,
-          accountFrom: document.getElementById('account-select').value,
-          comment: document.getElementById('comment').value
-        })
+      await sendPost({
+        action: 'addTransaction',
+        type: 'Расход',
+        category: selectedCategory,
+        amount: Number(amount),
+        payer: selectedPayer,
+        accountFrom: document.getElementById('account-select').value,
+        comment: document.getElementById('comment').value
       });
 
       document.getElementById('amount').value = '';
@@ -329,10 +341,7 @@
       const plan = document.getElementById('plan-amount').value;
       if (!plan) return;
 
-      await fetch(API_URL, {
-        method: 'POST',
-        body: JSON.stringify({ action: 'savePlan', category, plan: Number(plan) })
-      });
+      await sendPost({ action: 'savePlan', category, plan: Number(plan) });
       document.getElementById('plan-amount').value = '';
       tg.HapticFeedback.notificationOccurred('success');
       loadData();
@@ -341,14 +350,11 @@
     async function payObligation(rowIndex, title) {
       tg.showConfirm(`Отметить «${title}» как оплаченное от имени ${selectedPayer}?`, async (ok) => {
         if (!ok) return;
-        await fetch(API_URL, {
-          method: 'POST',
-          body: JSON.stringify({
-            action: 'payObligation',
-            rowIndex,
-            payer: selectedPayer,
-            accountFrom: document.getElementById('account-select').value
-          })
+        await sendPost({
+          action: 'payObligation',
+          rowIndex,
+          payer: selectedPayer,
+          accountFrom: document.getElementById('account-select').value
         });
         tg.HapticFeedback.notificationOccurred('success');
         loadData();
