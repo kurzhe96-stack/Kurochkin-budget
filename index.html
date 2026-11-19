@@ -143,8 +143,15 @@
           <div class="split-sub">Потратила: <b id="polina-spent">0 ₽</b></div>
         </div>
       </div>
-    </div>
 
+      <div class="split-box" style="margin-top: 10px;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span class="split-label">Общий счет и прочие счета</span>
+          <span class="split-val" id="shared-balance" style="margin-top:0;">0 ₽</span>
+        </div>
+        <div id="accounts-breakdown" style="font-size: 12px; color: var(--hint); margin-top: 8px;"></div>
+      </div>
+    </div>
     <div class="card">
       <h2>План / Прогноз по категориям</h2>
       <div id="plan-bars"></div>
@@ -335,6 +342,18 @@
       document.getElementById('upcoming-obligations').textContent = formatRub(appData.summary.upcomingObligations || 0);
       document.getElementById('safe-daily-limit').textContent = formatRub(appData.summary.safeDailyLimit || 0);
       document.getElementById('days-left-label').textContent = `Осталось дней в месяце: ${appData.summary.daysLeft || 0}`;
+
+      document.getElementById('zhenya-balance').textContent = formatRub(appData.balances?.zhenya || 0);
+      document.getElementById('polina-balance').textContent = formatRub(appData.balances?.polina || 0);
+      document.getElementById('shared-balance').textContent = formatRub(appData.balances?.shared || 0);
+      document.getElementById('total-balance').textContent = formatRub(appData.balances?.total || 0);
+
+      const accBox = document.getElementById('accounts-breakdown');
+      if (accBox && Array.isArray(appData.accounts) && appData.accounts.length > 0) {
+        accBox.innerHTML = appData.accounts
+          .map(a => `<div style="display:flex; justify-content:space-between; padding:3px 0;"><span>${a.name}</span><b>${formatRub(a.balance)}</b></div>`)
+          .join('');
+      }
 
       const barsContainer = document.getElementById('plan-bars');
       barsContainer.innerHTML = '';
