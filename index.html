@@ -16,9 +16,10 @@
       --green: #34c759;
       --orange: #ff9500;
       --red: #ff3b30;
+      --blue: #0a84ff;
     }
     * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
-    body { margin: 0; padding: 12px 12px 90px; background: var(--bg); color: var(--text); }
+    body { margin: 0; padding: 12px 12px 92px; background: var(--bg); color: var(--text); }
     .card { background: var(--card); border-radius: 16px; padding: 16px; margin-bottom: 12px; }
     h2 { margin: 0 0 12px; font-size: 18px; }
     .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
@@ -47,11 +48,17 @@
     .toggle-row { display: flex; gap: 8px; margin-bottom: 12px; }
     .toggle-btn { flex: 1; padding: 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.04); color: var(--text); font-weight: 600; cursor: pointer; }
     .toggle-btn.active { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+    .toggle-btn.green.active { background: var(--green); color: #fff; border-color: var(--green); }
+    .toggle-btn.blue.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+
+    label { display: block; font-size: 12px; color: var(--hint); margin-bottom: 4px; }
     input[type="text"], input[type="number"], input[type="date"], select {
       width: 100%; padding: 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1);
       background: rgba(255,255,255,0.05); color: var(--text); font-size: 15px; margin-bottom: 10px;
     }
     .primary-btn { width: 100%; padding: 14px; border-radius: 12px; border: none; background: var(--accent); color: var(--accent-text); font-size: 16px; font-weight: 600; cursor: pointer; }
+    .primary-btn.green { background: var(--green); color: #fff; }
+    .primary-btn.blue { background: var(--blue); color: #fff; }
     .primary-btn:disabled { opacity: 0.5; }
 
     /* Прогресс-бары */
@@ -74,16 +81,16 @@
 
     /* Нижняя навигация */
     .nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--card); display: flex; border-top: 1px solid rgba(255,255,255,0.08); padding: 8px 0 18px; z-index: 100; }
-    .nav-item { flex: 1; text-align: center; font-size: 11px; color: var(--hint); cursor: pointer; }
+    .nav-item { flex: 1; text-align: center; font-size: 10px; color: var(--hint); cursor: pointer; }
     .nav-item.active { color: var(--accent); font-weight: 600; }
-    .nav-icon { font-size: 20px; display: block; margin-bottom: 2px; }
+    .nav-icon { font-size: 18px; display: block; margin-bottom: 2px; }
     .tab { display: none; }
     .tab.active { display: block; }
   </style>
 </head>
 <body>
 
-  <!-- ВКЛАДКА 1: ВВОД -->
+  <!-- ВКЛАДКА 1: ВВОД РАСХОДА -->
   <div id="tab-add" class="tab active">
     <div class="card">
       <div class="header-row">
@@ -124,7 +131,69 @@
     </div>
   </div>
 
-  <!-- ВКЛАДКА 2: ПРОГНОЗ И СЕМЬЯ -->
+  <!-- ВКЛАДКА 2: ДЕНЬГИ (ДОХОДЫ И ПЕРЕВОДЫ) -->
+  <div id="tab-money" class="tab">
+    <div class="card">
+      <h2>Внести доход</h2>
+      <div class="toggle-row">
+        <button class="toggle-btn green active" id="inc-person-zhenya" onclick="selectIncomePerson('Женя')">👨 Женя</button>
+        <button class="toggle-btn green" id="inc-person-polina" onclick="selectIncomePerson('Полина')">👩 Полина</button>
+      </div>
+
+      <input type="number" id="inc-amount" class="amount-input" placeholder="0 ₽" inputmode="decimal">
+
+      <label style="margin-top: 10px;">Откуда пришли деньги</label>
+      <select id="inc-category">
+        <option value="Зарплата">💼 Зарплата</option>
+        <option value="Доп. заработок">⚡ Доп. заработок</option>
+        <option value="Прочие доходы">✨ Прочие доходы</option>
+      </select>
+
+      <label>Куда зачислить</label>
+      <select id="inc-account-to">
+        <option value="Карта Жени">Карта Жени (счет Жени)</option>
+        <option value="Карта Полины">Карта Полины (счет Полины)</option>
+        <option value="Общий счет">Общий счет</option>
+        <option value="Накопительный счет">Накопительный счет</option>
+      </select>
+
+      <input type="text" id="inc-comment" placeholder="Комментарий (например: аванс, проект)">
+      <button class="primary-btn green" id="inc-submit-btn" onclick="submitIncome()">Зачислить доход</button>
+    </div>
+
+    <div class="card">
+      <h2>Перевод между счетами</h2>
+      <p style="font-size: 12px; color: var(--hint); margin-top: -6px;">Не считается расходом — только движение денег между счетами</p>
+
+      <div class="toggle-row">
+        <button class="toggle-btn blue active" id="tr-person-zhenya" onclick="selectTransferPerson('Женя')">👨 Женя</button>
+        <button class="toggle-btn blue" id="tr-person-polina" onclick="selectTransferPerson('Полина')">👩 Полина</button>
+      </div>
+
+      <input type="number" id="tr-amount" class="amount-input" placeholder="0 ₽" inputmode="decimal">
+
+      <label style="margin-top: 10px;">Откуда списать</label>
+      <select id="tr-account-from">
+        <option value="Карта Жени">Карта Жени (счет Жени)</option>
+        <option value="Карта Полины">Карта Полины (счет Полины)</option>
+        <option value="Общий счет">Общий счет</option>
+        <option value="Накопительный счет">Накопительный счет</option>
+      </select>
+
+      <label>Куда перевести</label>
+      <select id="tr-account-to">
+        <option value="Общий счет">Общий счет</option>
+        <option value="Карта Жени">Карта Жени (счет Жени)</option>
+        <option value="Карта Полины">Карта Полины (счет Полины)</option>
+        <option value="Накопительный счет">Накопительный счет</option>
+      </select>
+
+      <input type="text" id="tr-comment" placeholder="Комментарий (например: на общий бюджет)">
+      <button class="primary-btn blue" id="tr-submit-btn" onclick="submitTransfer()">Выполнить перевод</button>
+    </div>
+  </div>
+
+  <!-- ВКЛАДКА 3: ПРОГНОЗ И СЕМЬЯ -->
   <div id="tab-plan" class="tab">
     <div class="card">
       <h2>Балансы и расходы за месяц</h2>
@@ -152,6 +221,7 @@
         <div id="accounts-breakdown" style="font-size: 12px; color: var(--hint); margin-top: 8px;"></div>
       </div>
     </div>
+
     <div class="card">
       <h2>План / Прогноз по категориям</h2>
       <div id="plan-bars"></div>
@@ -165,7 +235,7 @@
     </div>
   </div>
 
-  <!-- ВКЛАДКА 3: ОБЯЗАТЕЛЬНЫЕ ТРАТЫ -->
+  <!-- ВКЛАДКА 4: ОБЯЗАТЕЛЬНЫЕ ТРАТЫ -->
   <div id="tab-obligations" class="tab">
     <div class="card">
       <h2>Обязательные и будущие траты</h2>
@@ -183,7 +253,7 @@
     </div>
   </div>
 
-  <!-- ВКЛАДКА 4: ИТОГИ -->
+  <!-- ВКЛАДКА 5: ИТОГИ -->
   <div id="tab-summary" class="tab">
     <div class="card">
       <h2>Итоги месяца</h2>
@@ -201,8 +271,19 @@
           <div class="split-val" id="total-balance">0 ₽</div>
         </div>
         <div class="split-box">
+          <div class="split-label">Доходы за месяц</div>
+          <div class="split-val" id="total-income" style="color: var(--green);">0 ₽</div>
+        </div>
+      </div>
+
+      <div class="split-grid" style="margin-top: 10px;">
+        <div class="split-box">
           <div class="split-label">Предстоит по обязательствам</div>
           <div class="split-val" id="upcoming-obligations">0 ₽</div>
+        </div>
+        <div class="split-box">
+          <div class="split-label">Переводов за месяц</div>
+          <div class="split-val" id="total-transfers">0 ₽</div>
         </div>
       </div>
     </div>
@@ -226,25 +307,30 @@
   <!-- НАВИГАЦИЯ -->
   <div class="nav">
     <div class="nav-item active" onclick="switchTab('add', this)"><span class="nav-icon">➕</span>Ввод</div>
-    <div class="nav-item" onclick="switchTab('plan', this)"><span class="nav-icon">📊</span>Прогноз и Семья</div>
-    <div class="nav-item" onclick="switchTab('obligations', this)"><span class="nav-icon">📅</span>Обязательные</div>
+    <div class="nav-item" onclick="switchTab('money', this)"><span class="nav-icon">💸</span>Деньги</div>
+    <div class="nav-item" onclick="switchTab('plan', this)"><span class="nav-icon">📊</span>Прогноз</div>
+    <div class="nav-item" onclick="switchTab('obligations', this)"><span class="nav-icon">📅</span>Обязат.</div>
     <div class="nav-item" onclick="switchTab('summary', this)"><span class="nav-icon">📈</span>Итоги</div>
   </div>
 
   <script>
-    const API_URL = 'https://script.google.com/macros/s/AKfycbydhCrAzYNcHHRFMOh9tjOfs8lRC1DaNMsylCm15lwoJOQeX-IrW8CzT7tOTUEME5I5/exec';
+    const API_URL = 'https://script.google.com/macros/s/AKfycbzc0CECsCXPXqUjrEOdzcz1BaaXqkI2YIKlRHUTBtsmmN95BChudX2EAbBsIdQJdxym/exec';
 
     const CATEGORIES = [
       { id: 'Продукты', label: 'Продукты', icon: '🛒' },
       { id: 'Авто', label: 'Машина', icon: '🚗' },
       { id: 'Аренда квартиры', label: 'Аренда', icon: '🏠' },
       { id: 'Кафе и рестораны', label: 'Еда вне дома', icon: '🍔' },
+      { id: 'Досуг', label: 'Досуг', icon: '🎭' },
+      { id: 'Одежда и обувь', label: 'Одежда и обувь', icon: '👟' },
+      { id: 'Подарки', label: 'Подарки', icon: '🎁' },
       { id: 'Здоровье и аптека', label: 'Здоровье', icon: '💊' },
-      { id: 'Подарки', label: 'Семья', icon: '👨‍👩‍👦' },
       { id: 'Прочее', label: 'Другое', icon: '📦' }
     ];
 
     let selectedPayer = 'Женя';
+    let selectedIncomePerson = 'Женя';
+    let selectedTransferPerson = 'Женя';
     let selectedCategory = 'Продукты';
     let appData = null;
 
@@ -273,7 +359,7 @@
 
         const opt1 = document.createElement('option');
         opt1.value = cat.id;
-        opt1.textContent = `${cat.icon} ${cat.label} (${cat.id})`;
+        opt1.textContent = `${cat.icon} ${cat.label}`;
         planSelect.appendChild(opt1);
 
         const opt2 = document.createElement('option');
@@ -285,8 +371,12 @@
       const firstName = tg.initDataUnsafe?.user?.first_name || '';
       if (firstName.toLowerCase().includes('полин')) {
         selectPayer('Полина');
+        selectIncomePerson('Полина');
+        selectTransferPerson('Полина');
       } else {
         selectPayer('Женя');
+        selectIncomePerson('Женя');
+        selectTransferPerson('Женя');
       }
 
       loadData();
@@ -302,6 +392,21 @@
       document.getElementById('payer-zhenya').classList.toggle('active', name === 'Женя');
       document.getElementById('payer-polina').classList.toggle('active', name === 'Полина');
       document.getElementById('account-select').value = name === 'Полина' ? 'Карта Полины' : 'Карта Жени';
+    }
+
+    function selectIncomePerson(name) {
+      selectedIncomePerson = name;
+      document.getElementById('inc-person-zhenya').classList.toggle('active', name === 'Женя');
+      document.getElementById('inc-person-polina').classList.toggle('active', name === 'Полина');
+      document.getElementById('inc-account-to').value = name === 'Полина' ? 'Карта Полины' : 'Карта Жени';
+    }
+
+    function selectTransferPerson(name) {
+      selectedTransferPerson = name;
+      document.getElementById('tr-person-zhenya').classList.toggle('active', name === 'Женя');
+      document.getElementById('tr-person-polina').classList.toggle('active', name === 'Полина');
+      document.getElementById('tr-account-from').value = name === 'Полина' ? 'Карта Полины' : 'Карта Жени';
+      document.getElementById('tr-account-to').value = 'Общий счет';
     }
 
     function switchTab(tabName, el) {
@@ -335,6 +440,8 @@
 
       document.getElementById('current-month-badge').textContent = appData.month;
       document.getElementById('total-spent').textContent = formatRub(appData.summary.totalSpent);
+      document.getElementById('total-income').textContent = formatRub(appData.summary.totalIncome || 0);
+      document.getElementById('total-transfers').textContent = formatRub(appData.summary.totalTransfers || 0);
       document.getElementById('zhenya-spent').textContent = formatRub(appData.summary.zhenyaSpent);
       document.getElementById('polina-spent').textContent = formatRub(appData.summary.polinaSpent);
 
@@ -398,15 +505,31 @@
       if (!appData.recentTransactions || appData.recentTransactions.length === 0) {
         recentContainer.innerHTML = 'В этом месяце операций пока нет';
       } else {
-        recentContainer.innerHTML = appData.recentTransactions.map(t => `
-          <div style="display:flex; justify-content:space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
-            <div>
-              <b>${t.category}</b> <span style="font-size:12px;">(${t.payer || '—'})</span>
-              <div style="font-size:12px; color:var(--hint);">${t.date} ${t.comment ? '• ' + t.comment : ''}</div>
+        recentContainer.innerHTML = appData.recentTransactions.map(t => {
+          let amountText = `-${formatRub(t.amount)}`;
+          let amountColor = 'var(--text)';
+          let subInfo = `${t.date} ${t.payer ? '• ' + t.payer : ''} ${t.comment ? '• ' + t.comment : ''}`;
+
+          if (t.type === 'Доход') {
+            amountText = `+${formatRub(t.amount)}`;
+            amountColor = 'var(--green)';
+            subInfo = `${t.date} • Доход ${t.accountTo ? '→ ' + t.accountTo : ''} ${t.comment ? '• ' + t.comment : ''}`;
+          } else if (t.type === 'Перевод') {
+            amountText = `⇄ ${formatRub(t.amount)}`;
+            amountColor = 'var(--blue)';
+            subInfo = `${t.date} • ${t.accountFrom || '—'} → ${t.accountTo || '—'} ${t.comment ? '• ' + t.comment : ''}`;
+          }
+
+          return `
+            <div style="display:flex; justify-content:space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
+              <div>
+                <b>${t.category}</b>
+                <div style="font-size:12px; color:var(--hint);">${subInfo}</div>
+              </div>
+              <div style="font-weight:700; color:${amountColor};">${amountText}</div>
             </div>
-            <div style="font-weight:700;">-${formatRub(t.amount)}</div>
-          </div>
-        `).join('');
+          `;
+        }).join('');
       }
 
       const coupleShare = document.getElementById('couple-share');
@@ -491,6 +614,71 @@
       document.getElementById('comment').value = '';
       btn.disabled = false;
       btn.textContent = 'Добавить расход';
+      tg.HapticFeedback.notificationOccurred('success');
+      loadData();
+    }
+
+    async function submitIncome() {
+      const amount = parseNum(document.getElementById('inc-amount').value);
+      if (amount <= 0) {
+        tg.showAlert('Введите сумму дохода');
+        return;
+      }
+      const btn = document.getElementById('inc-submit-btn');
+      btn.disabled = true;
+      btn.textContent = 'Зачисление...';
+
+      await sendPost({
+        action: 'addTransaction',
+        type: 'Доход',
+        category: document.getElementById('inc-category').value,
+        amount,
+        payer: selectedIncomePerson,
+        accountTo: document.getElementById('inc-account-to').value,
+        comment: document.getElementById('inc-comment').value
+      });
+
+      document.getElementById('inc-amount').value = '';
+      document.getElementById('inc-comment').value = '';
+      btn.disabled = false;
+      btn.textContent = 'Зачислить доход';
+      tg.HapticFeedback.notificationOccurred('success');
+      loadData();
+    }
+
+    async function submitTransfer() {
+      const amount = parseNum(document.getElementById('tr-amount').value);
+      const accFrom = document.getElementById('tr-account-from').value;
+      const accTo = document.getElementById('tr-account-to').value;
+
+      if (amount <= 0) {
+        tg.showAlert('Введите сумму перевода');
+        return;
+      }
+      if (accFrom === accTo) {
+        tg.showAlert('Выберите разные счета для списания и зачисления');
+        return;
+      }
+
+      const btn = document.getElementById('tr-submit-btn');
+      btn.disabled = true;
+      btn.textContent = 'Перевод...';
+
+      await sendPost({
+        action: 'addTransaction',
+        type: 'Перевод',
+        category: 'Перевод между счетами',
+        amount,
+        payer: selectedTransferPerson,
+        accountFrom: accFrom,
+        accountTo: accTo,
+        comment: document.getElementById('tr-comment').value
+      });
+
+      document.getElementById('tr-amount').value = '';
+      document.getElementById('tr-comment').value = '';
+      btn.disabled = false;
+      btn.textContent = 'Выполнить перевод';
       tg.HapticFeedback.notificationOccurred('success');
       loadData();
     }
