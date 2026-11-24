@@ -69,21 +69,28 @@
     .prog-fill.warn { background: var(--orange); }
     .prog-fill.over { background: var(--red); }
 
-    /* Обязательные платежи */
-    .ob-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.06); }
-    .ob-item:last-child { border-bottom: none; }
-    .ob-btn { padding: 8px 12px; border-radius: 8px; border: none; background: var(--green); color: #fff; font-weight: 600; font-size: 13px; cursor: pointer; }
+    /* Обязательные платежи и история */
+    .ob-item, .hist-item { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.06); }
+    .ob-item:last-child, .hist-item:last-child { border-bottom: none; }
+    .ob-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex-shrink: 0; }
+    .ob-btn { padding: 7px 11px; border-radius: 8px; border: none; background: var(--green); color: #fff; font-weight: 600; font-size: 12px; cursor: pointer; }
+    .mini-btn { padding: 5px 9px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.14); background: rgba(255,255,255,0.06); color: var(--text); font-weight: 600; font-size: 11px; cursor: pointer; }
+    .mini-btn.danger { border-color: rgba(255,59,48,0.4); color: var(--red); background: rgba(255,59,48,0.08); }
     .ob-done { font-size: 12px; color: var(--green); font-weight: 600; }
+
+    .filter-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+    .filter-chip { padding: 6px 10px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.04); color: var(--hint); font-size: 12px; font-weight: 600; cursor: pointer; }
+    .filter-chip.active { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
 
     /* Итоги и аналитика */
     .stat-pill { background: rgba(255,255,255,0.04); border-radius: 12px; padding: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
     .stat-big { font-size: 20px; font-weight: 800; color: var(--green); }
 
-    /* Нижняя навигация */
+    /* Нижняя навигация (6 вкладок) */
     .nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--card); display: flex; border-top: 1px solid rgba(255,255,255,0.08); padding: 8px 0 18px; z-index: 100; }
     .nav-item { flex: 1; text-align: center; font-size: 10px; color: var(--hint); cursor: pointer; }
     .nav-item.active { color: var(--accent); font-weight: 600; }
-    .nav-icon { font-size: 18px; display: block; margin-bottom: 2px; }
+    .nav-icon { font-size: 17px; display: block; margin-bottom: 2px; }
     .tab { display: none; }
     .tab.active { display: block; }
   </style>
@@ -113,7 +120,7 @@
 
       <div class="cat-grid" id="category-grid"></div>
 
-      <input type="text" id="comment" placeholder="Комментарий (например: Пятерочка, бензин)">
+      <input type="text" id="comment" placeholder="Комментарий (например: Пятерочка, метро, кино)">
 
       <select id="account-select">
         <option value="Карта Жени">Карта Жени</option>
@@ -126,12 +133,15 @@
     </div>
 
     <div class="card">
-      <h2>Последние операции</h2>
+      <div class="header-row">
+        <h2 style="margin:0;">Последние операции</h2>
+        <button class="mini-btn" onclick="openHistoryTab()">Вся история →</button>
+      </div>
       <div id="recent-list" style="font-size: 14px; color: var(--hint);">Загрузка данных из таблицы...</div>
     </div>
   </div>
 
-  <!-- ВКЛАДКА 2: ДЕНЬГИ (ДОХОДЫ И ПЕРЕВОДЫ) -->
+  <!-- ВКЛАДКА 2: ДЕНЬГИ (ДОХОДЫ И ПЕРЕВОД МЕЖДУ СЧЕТАМИ) -->
   <div id="tab-money" class="tab">
     <div class="card">
       <h2>Внести доход</h2>
@@ -151,19 +161,19 @@
 
       <label>Куда зачислить</label>
       <select id="inc-account-to">
-        <option value="Карта Жени">Карта Жени (счет Жени)</option>
-        <option value="Карта Полины">Карта Полины (счет Полины)</option>
+        <option value="Карта Жени">Карта Жени</option>
+        <option value="Карта Полины">Карта Полины</option>
         <option value="Общий счет">Общий счет</option>
         <option value="Накопительный счет">Накопительный счет</option>
       </select>
 
-      <input type="text" id="inc-comment" placeholder="Комментарий (например: аванс, проект)">
+      <input type="text" id="inc-comment" placeholder="Комментарий (например: аванс, подработка)">
       <button class="primary-btn green" id="inc-submit-btn" onclick="submitIncome()">Зачислить доход</button>
     </div>
 
     <div class="card">
       <h2>Перевод между счетами</h2>
-      <p style="font-size: 12px; color: var(--hint); margin-top: -6px;">Не считается расходом — только движение денег между счетами</p>
+      <p style="font-size: 12px; color: var(--hint); margin-top: -6px;">Записывается как «Перевод между счетами» и не считается расходом</p>
 
       <div class="toggle-row">
         <button class="toggle-btn blue active" id="tr-person-zhenya" onclick="selectTransferPerson('Женя')">👨 Женя</button>
@@ -172,28 +182,42 @@
 
       <input type="number" id="tr-amount" class="amount-input" placeholder="0 ₽" inputmode="decimal">
 
-      <label style="margin-top: 10px;">Откуда списать</label>
+      <label style="margin-top: 10px;">Счет списания</label>
       <select id="tr-account-from">
-        <option value="Карта Жени">Карта Жени (счет Жени)</option>
-        <option value="Карта Полины">Карта Полины (счет Полины)</option>
+        <option value="Карта Жени">Карта Жени</option>
+        <option value="Карта Полины">Карта Полины</option>
         <option value="Общий счет">Общий счет</option>
         <option value="Накопительный счет">Накопительный счет</option>
       </select>
 
-      <label>Куда перевести</label>
+      <label>Счет зачисления</label>
       <select id="tr-account-to">
         <option value="Общий счет">Общий счет</option>
-        <option value="Карта Жени">Карта Жени (счет Жени)</option>
-        <option value="Карта Полины">Карта Полины (счет Полины)</option>
+        <option value="Карта Жени">Карта Жени</option>
+        <option value="Карта Полины">Карта Полины</option>
         <option value="Накопительный счет">Накопительный счет</option>
       </select>
 
-      <input type="text" id="tr-comment" placeholder="Комментарий (например: на общий бюджет)">
+      <input type="text" id="tr-comment" placeholder="Комментарий (например: на общий счет)">
       <button class="primary-btn blue" id="tr-submit-btn" onclick="submitTransfer()">Выполнить перевод</button>
     </div>
   </div>
 
-  <!-- ВКЛАДКА 3: ПРОГНОЗ И СЕМЬЯ -->
+  <!-- ВКЛАДКА 3: ИСТОРИЯ ОПЕРАЦИЙ -->
+  <div id="tab-history" class="tab">
+    <div class="card">
+      <h2>История операций за месяц</h2>
+      <div class="filter-row">
+        <button class="filter-chip active" data-filter="ALL" onclick="setHistoryFilter('ALL', this)">Все</button>
+        <button class="filter-chip" data-filter="Расход" onclick="setHistoryFilter('Расход', this)">Расходы</button>
+        <button class="filter-chip" data-filter="Доход" onclick="setHistoryFilter('Доход', this)">Доходы</button>
+        <button class="filter-chip" data-filter="Перевод между счетами" onclick="setHistoryFilter('Перевод между счетами', this)">Переводы</button>
+      </div>
+      <div id="history-list" style="font-size: 14px; color: var(--hint);">Загрузка...</div>
+    </div>
+  </div>
+
+  <!-- ВКЛАДКА 4: ПРОГНОЗ И СЕМЬЯ -->
   <div id="tab-plan" class="tab">
     <div class="card">
       <h2>Балансы и расходы за месяц</h2>
@@ -235,7 +259,7 @@
     </div>
   </div>
 
-  <!-- ВКЛАДКА 4: ОБЯЗАТЕЛЬНЫЕ ТРАТЫ -->
+  <!-- ВКЛАДКА 5: ОБЯЗАТЕЛЬНЫЕ ТРАТЫ -->
   <div id="tab-obligations" class="tab">
     <div class="card">
       <h2>Обязательные и будущие траты</h2>
@@ -253,7 +277,7 @@
     </div>
   </div>
 
-  <!-- ВКЛАДКА 5: ИТОГИ -->
+  <!-- ВКЛАДКА 6: ИТОГИ -->
   <div id="tab-summary" class="tab">
     <div class="card">
       <h2>Итоги месяца</h2>
@@ -283,7 +307,14 @@
         </div>
         <div class="split-box">
           <div class="split-label">Переводов за месяц</div>
-          <div class="split-val" id="total-transfers">0 ₽</div>
+          <div class="split-val" id="total-transfers" style="color: var(--blue);">0 ₽</div>
+        </div>
+      </div>
+
+      <div class="split-box" style="margin-top: 10px;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span class="split-label">Чистый результат (Доходы − Расходы)</span>
+          <span class="split-val" id="net-cashflow" style="margin-top:0;">0 ₽</span>
         </div>
       </div>
     </div>
@@ -294,7 +325,7 @@
     </div>
 
     <div class="card">
-      <h2>Топ трат по категориям</h2>
+      <h2>Структура расходов по категориям</h2>
       <div id="top-categories">Загрузка...</div>
     </div>
 
@@ -308,19 +339,21 @@
   <div class="nav">
     <div class="nav-item active" onclick="switchTab('add', this)"><span class="nav-icon">➕</span>Ввод</div>
     <div class="nav-item" onclick="switchTab('money', this)"><span class="nav-icon">💸</span>Деньги</div>
+    <div class="nav-item" onclick="switchTab('history', this)"><span class="nav-icon">🧾</span>История</div>
     <div class="nav-item" onclick="switchTab('plan', this)"><span class="nav-icon">📊</span>Прогноз</div>
     <div class="nav-item" onclick="switchTab('obligations', this)"><span class="nav-icon">📅</span>Обязат.</div>
     <div class="nav-item" onclick="switchTab('summary', this)"><span class="nav-icon">📈</span>Итоги</div>
   </div>
 
   <script>
-    const API_URL = 'https://script.google.com/macros/s/AKfycbzc0CECsCXPXqUjrEOdzcz1BaaXqkI2YIKlRHUTBtsmmN95BChudX2EAbBsIdQJdxym/exec';
+    const API_URL = 'https://script.google.com/macros/s/AKfycbzrdf-cpseYjqP1wpp-Brquic8YkeFLI0c-ScNFPsGBtgBCG7VLFixEBcBC-lwMgHi2/exec';
 
     const CATEGORIES = [
       { id: 'Продукты', label: 'Продукты', icon: '🛒' },
       { id: 'Авто', label: 'Машина', icon: '🚗' },
       { id: 'Аренда квартиры', label: 'Аренда', icon: '🏠' },
       { id: 'Кафе и рестораны', label: 'Еда вне дома', icon: '🍔' },
+      { id: 'Транспорт', label: 'Транспорт', icon: '🚌' },
       { id: 'Досуг', label: 'Досуг', icon: '🎭' },
       { id: 'Одежда и обувь', label: 'Одежда и обувь', icon: '👟' },
       { id: 'Подарки', label: 'Подарки', icon: '🎁' },
@@ -332,6 +365,7 @@
     let selectedIncomePerson = 'Женя';
     let selectedTransferPerson = 'Женя';
     let selectedCategory = 'Продукты';
+    let historyFilter = 'ALL';
     let appData = null;
 
     const tg = window.Telegram.WebApp;
@@ -339,6 +373,10 @@
 
     function parseNum(val) {
       return Number(String(val || '').replace(',', '.')) || 0;
+    }
+
+    function escapeJs(str) {
+      return String(str || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
     }
 
     function init() {
@@ -413,7 +451,24 @@
       document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
       document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
       document.getElementById('tab-' + tabName).classList.add('active');
-      el.classList.add('active');
+      if (el) {
+        el.classList.add('active');
+      } else {
+        const navIdx = ['add', 'money', 'history', 'plan', 'obligations', 'summary'].indexOf(tabName);
+        const navItems = document.querySelectorAll('.nav-item');
+        if (navIdx >= 0 && navItems[navIdx]) navItems[navIdx].classList.add('active');
+      }
+    }
+
+    function openHistoryTab() {
+      switchTab('history', null);
+    }
+
+    function setHistoryFilter(filterVal, el) {
+      historyFilter = filterVal;
+      document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+      if (el) el.classList.add('active');
+      renderHistory();
     }
 
     async function loadData() {
@@ -435,6 +490,56 @@
       }
     }
 
+    function formatTxRow(t, showCancelBtn) {
+      let amountText = `-${formatRub(t.amount)}`;
+      let amountColor = 'var(--text)';
+      let badgeText = t.type || 'Расход';
+
+      if (t.type === 'Доход') {
+        amountText = `+${formatRub(t.amount)}`;
+        amountColor = 'var(--green)';
+      } else if (t.type === 'Перевод между счетами') {
+        amountText = `⇄ ${formatRub(t.amount)}`;
+        amountColor = 'var(--blue)';
+      }
+
+      const accParts = [];
+      if (t.accountFrom) accParts.push(`списано: ${t.accountFrom}`);
+      if (t.accountTo) accParts.push(`зачислено: ${t.accountTo}`);
+      if (t.payer) accParts.push(`кто: ${t.payer}`);
+      if (t.comment) accParts.push(t.comment);
+
+      const detailLine = [t.date, badgeText, ...accParts].filter(Boolean).join(' • ');
+
+      return `
+        <div class="hist-item">
+          <div style="min-width:0; flex:1;">
+            <b>${t.category}</b>
+            <div style="font-size:12px; color:var(--hint); margin-top:2px; word-break:break-word;">${detailLine}</div>
+          </div>
+          <div class="ob-actions">
+            <div style="font-weight:700; color:${amountColor};">${amountText}</div>
+            ${showCancelBtn && t.rowIndex ? `<button class="mini-btn danger" onclick="cancelTransaction(${t.rowIndex}, '${escapeJs(t.category)}', ${t.amount})">Отменить</button>` : ''}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderHistory() {
+      const historyEl = document.getElementById('history-list');
+      if (!historyEl) return;
+      const list = appData?.historyTransactions || appData?.recentTransactions || [];
+      const filtered = historyFilter === 'ALL'
+        ? list
+        : list.filter(t => t.type === historyFilter);
+
+      if (filtered.length === 0) {
+        historyEl.innerHTML = '<div style="color:var(--hint)">Операций по выбранному фильтру нет</div>';
+        return;
+      }
+      historyEl.innerHTML = filtered.map(t => formatTxRow(t, true)).join('');
+    }
+
     function renderDashboard() {
       if (!appData) return;
 
@@ -442,6 +547,12 @@
       document.getElementById('total-spent').textContent = formatRub(appData.summary.totalSpent);
       document.getElementById('total-income').textContent = formatRub(appData.summary.totalIncome || 0);
       document.getElementById('total-transfers').textContent = formatRub(appData.summary.totalTransfers || 0);
+
+      const netVal = appData.summary.netCashflow ?? ((appData.summary.totalIncome || 0) - (appData.summary.totalSpent || 0));
+      const netEl = document.getElementById('net-cashflow');
+      netEl.textContent = (netVal > 0 ? '+' : '') + formatRub(netVal);
+      netEl.style.color = netVal >= 0 ? 'var(--green)' : 'var(--red)';
+
       document.getElementById('zhenya-spent').textContent = formatRub(appData.summary.zhenyaSpent);
       document.getElementById('polina-spent').textContent = formatRub(appData.summary.polinaSpent);
 
@@ -485,7 +596,8 @@
         obContainer.innerHTML = '<div style="color:var(--hint)">Обязательных трат пока нет</div>';
       } else {
         appData.obligations.forEach(ob => {
-          const isPaid = ob.status.toLowerCase().includes('оплачено');
+          const isPaid = String(ob.status || '').toLowerCase().includes('оплачено');
+          const safeTitle = escapeJs(ob.title);
           obContainer.innerHTML += `
             <div class="ob-item">
               <div>
@@ -493,9 +605,12 @@
                 <div style="font-size: 12px; color: var(--hint);">${ob.category} • Дата: ${ob.nextDate || ob.payDay || '—'}</div>
                 <div style="font-weight: 700; margin-top: 2px;">${formatRub(ob.amount)}</div>
               </div>
-              ${isPaid
-                ? `<span class="ob-done">✓ ${ob.status}</span>`
-                : `<button class="ob-btn" onclick="payObligation(${ob.rowIndex}, '${ob.title.replace(/'/g, "\\'")}')">Оплатить</button>`}
+              <div class="ob-actions">
+                ${isPaid
+                  ? `<span class="ob-done">✓ ${ob.status}</span><button class="mini-btn" onclick="cancelObligationPayment(${ob.rowIndex}, '${safeTitle}')">Отменить оплату</button>`
+                  : `<button class="ob-btn" onclick="payObligation(${ob.rowIndex}, '${safeTitle}')">Оплатить</button>`}
+                <button class="mini-btn danger" onclick="deleteObligation(${ob.rowIndex}, '${safeTitle}')">Удалить</button>
+              </div>
             </div>
           `;
         });
@@ -505,32 +620,10 @@
       if (!appData.recentTransactions || appData.recentTransactions.length === 0) {
         recentContainer.innerHTML = 'В этом месяце операций пока нет';
       } else {
-        recentContainer.innerHTML = appData.recentTransactions.map(t => {
-          let amountText = `-${formatRub(t.amount)}`;
-          let amountColor = 'var(--text)';
-          let subInfo = `${t.date} ${t.payer ? '• ' + t.payer : ''} ${t.comment ? '• ' + t.comment : ''}`;
-
-          if (t.type === 'Доход') {
-            amountText = `+${formatRub(t.amount)}`;
-            amountColor = 'var(--green)';
-            subInfo = `${t.date} • Доход ${t.accountTo ? '→ ' + t.accountTo : ''} ${t.comment ? '• ' + t.comment : ''}`;
-          } else if (t.type === 'Перевод') {
-            amountText = `⇄ ${formatRub(t.amount)}`;
-            amountColor = 'var(--blue)';
-            subInfo = `${t.date} • ${t.accountFrom || '—'} → ${t.accountTo || '—'} ${t.comment ? '• ' + t.comment : ''}`;
-          }
-
-          return `
-            <div style="display:flex; justify-content:space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
-              <div>
-                <b>${t.category}</b>
-                <div style="font-size:12px; color:var(--hint);">${subInfo}</div>
-              </div>
-              <div style="font-weight:700; color:${amountColor};">${amountText}</div>
-            </div>
-          `;
-        }).join('');
+        recentContainer.innerHTML = appData.recentTransactions.map(t => formatTxRow(t, false)).join('');
       }
+
+      renderHistory();
 
       const coupleShare = document.getElementById('couple-share');
       const zVal = appData.summary.zhenyaSpent || 0;
@@ -553,15 +646,19 @@
       const topCatEl = document.getElementById('top-categories');
       const sortedCats = Object.entries(appData.spentByCategory || {})
         .sort((a, b) => b[1] - a[1]);
+      const totalSpentForPct = appData.summary.totalSpent || 0;
       if (sortedCats.length === 0) {
         topCatEl.innerHTML = '<div style="color:var(--hint)">Трат пока нет</div>';
       } else {
-        topCatEl.innerHTML = sortedCats.map(([cat, val]) => `
-          <div style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid rgba(255,255,255,0.05);">
-            <span>${cat}</span>
-            <b>${formatRub(val)}</b>
-          </div>
-        `).join('');
+        topCatEl.innerHTML = sortedCats.map(([cat, val]) => {
+          const sharePct = totalSpentForPct > 0 ? Math.round((val / totalSpentForPct) * 100) : 0;
+          return `
+            <div style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid rgba(255,255,255,0.05);">
+              <span>${cat} <span style="font-size:12px; color:var(--hint);">(${sharePct}%)</span></span>
+              <b>${formatRub(val)}</b>
+            </div>
+          `;
+        }).join('');
       }
 
       const goalsEl = document.getElementById('goals-list');
@@ -666,7 +763,7 @@
 
       await sendPost({
         action: 'addTransaction',
-        type: 'Перевод',
+        type: 'Перевод между счетами',
         category: 'Перевод между счетами',
         amount,
         payer: selectedTransferPerson,
@@ -681,6 +778,15 @@
       btn.textContent = 'Выполнить перевод';
       tg.HapticFeedback.notificationOccurred('success');
       loadData();
+    }
+
+    async function cancelTransaction(rowIndex, category, amount) {
+      tg.showConfirm(`Отменить операцию «${category}» на ${formatRub(amount)}?`, async (ok) => {
+        if (!ok) return;
+        await sendPost({ action: 'deleteTransaction', rowIndex });
+        tg.HapticFeedback.notificationOccurred('success');
+        loadData();
+      });
     }
 
     async function saveCategoryPlan() {
@@ -731,6 +837,24 @@
           payer: selectedPayer,
           accountFrom: document.getElementById('account-select').value
         });
+        tg.HapticFeedback.notificationOccurred('success');
+        loadData();
+      });
+    }
+
+    async function cancelObligationPayment(rowIndex, title) {
+      tg.showConfirm(`Отменить оплату «${title}» и вернуть статус в «Ожидает»?`, async (ok) => {
+        if (!ok) return;
+        await sendPost({ action: 'cancelObligationPayment', rowIndex, title });
+        tg.HapticFeedback.notificationOccurred('success');
+        loadData();
+      });
+    }
+
+    async function deleteObligation(rowIndex, title) {
+      tg.showConfirm(`Удалить обязательную трату «${title}»?`, async (ok) => {
+        if (!ok) return;
+        await sendPost({ action: 'deleteObligation', rowIndex });
         tg.HapticFeedback.notificationOccurred('success');
         loadData();
       });
